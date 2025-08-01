@@ -42,7 +42,7 @@ export default function AdminPanel() {
       <header className="bg-white border-b">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-orange-600">Panel de Administración</h1>
-          <div className="flex gap-2">
+          <div className="md:flex-row flex-col flex gap-2">
             <Button variant="outline" onClick={() => router.push("/")}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Volver al Menú

@@ -7,26 +7,34 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
-import { Loader2, Plus, Save, X } from "lucide-react"
+import { Loader2, Plus, Save, X, Upload, Image as ImageIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Categoria, Plato } from "@/lib/generated/prisma"
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { platoSchema } from "@/schemas/platos"; // Ajusta la ruta si es necesario
+import { platoSchema } from "@/schemas/platos";
 import { z } from "zod";
 import { usePlatosStore } from "@/store/platos"
 import { addPlato, updatePlato } from "@/utils/actions-platos"
-
+import {
+    uploadImageToCloudinary,
+    deleteImageFromCloudinary,
+    updateImageInCloudinary,
+    validateImageFile,
+    CloudinaryResponse
+} from '@/lib/cloudinary';
+import { toast } from 'sonner';
 
 type PlatoForm = z.infer<typeof platoSchema>;
-
 
 export default function PlatoModal({ showItemModal, closeModal, item, categorias }: { showItemModal: boolean, closeModal: (show: boolean) => void, item: Plato | null, categorias: Categoria[] }) {
     const [newIngredient, setNewIngredient] = useState("");
     const [isEditing, setIsEditing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const { dispatch } = usePlatosStore()
-
+    const [isUploadingImage, setIsUploadingImage] = useState(false);
+    const [currentImageUrl, setCurrentImageUrl] = useState<string>("");
+    const [currentPublicId, setCurrentPublicId] = useState<string>("");
+    const { dispatch, platos } = usePlatosStore()
 
     const { control, register, handleSubmit, setValue, getValues, reset, watch, formState: { errors }, } = useForm<PlatoForm>({
         resolver: zodResolver(platoSchema),
@@ -53,10 +61,18 @@ export default function PlatoModal({ showItemModal, closeModal, item, categorias
                 categoriaIds: item?.categoriaIds || [],
                 disponible: item?.disponible ?? true,
             });
+            setCurrentImageUrl(item?.foto || "");
+            // Extraer public_id de la URL si existe
+            if (item?.foto) {
+                const urlParts = item.foto.split('/');
+                const fileName = urlParts[urlParts.length - 1].split('.')[0];
+                setCurrentPublicId(`adminpanel/${fileName}`);
+            }
             setIsEditing(true);
-
         } else {
             reset()
+            setCurrentImageUrl("");
+            setCurrentPublicId("");
             setIsEditing(false);
         }
     }, [item, reset]);
@@ -72,6 +88,64 @@ export default function PlatoModal({ showItemModal, closeModal, item, categorias
         setValue("ingredientes", current.filter((_, i) => i !== index));
     };
 
+    // Función para manejar la subida de imágenes
+    const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        try {
+            // Validar archivo
+            validateImageFile(file);
+
+            setIsUploadingImage(true);
+
+            let response: CloudinaryResponse;
+
+            if (currentPublicId) {
+                // Actualizar imagen existente
+                response = await updateImageInCloudinary(file, currentPublicId, 'adminpanel');
+                setCurrentPublicId(response.data.public_id);
+                toast.success('Imagen actualizada correctamente');
+            } else {
+                // Subir nueva imagen
+                response = await uploadImageToCloudinary(file, 'adminpanel');
+                setCurrentPublicId(response.data.public_id);
+                toast.success('Imagen subida correctamente');
+            }
+
+            // Actualizar el formulario con la nueva URL
+            setCurrentImageUrl(response.data.secure_url);
+            setValue("foto", response.data.secure_url);
+
+        } catch (error) {
+            console.error('Error:', error);
+            toast.error(error instanceof Error ? error.message : 'Error al procesar la imagen');
+        } finally {
+            setIsUploadingImage(false);
+            if (event.target) {
+                event.target.value = '';
+            }
+        }
+    };
+
+    // Función para eliminar imagen
+    const handleDeleteImage = async () => {
+        if (!currentPublicId) return;
+
+        try {
+            setIsUploadingImage(true);
+            await deleteImageFromCloudinary(currentPublicId);
+            setCurrentImageUrl("");
+            setCurrentPublicId("");
+            setValue("foto", "");
+            toast.success('Imagen eliminada correctamente');
+        } catch (error) {
+            console.error('Error al eliminar imagen:', error);
+            toast.error('Error al eliminar la imagen');
+        } finally {
+            setIsUploadingImage(false);
+        }
+    };
 
     const addItem = async (data: PlatoForm) => {
         const res = await addPlato(data)
@@ -90,6 +164,9 @@ export default function PlatoModal({ showItemModal, closeModal, item, categorias
                 categoriaIds: [],
                 disponible: true,
             });
+            setCurrentImageUrl("");
+            setCurrentPublicId("");
+            window.sessionStorage.setItem("platos", JSON.stringify([...platos, newItem]))
         } else {
             setIsLoading(false)
             alert("Error al agregar el plato")
@@ -114,6 +191,8 @@ export default function PlatoModal({ showItemModal, closeModal, item, categorias
                 categoriaIds: [],
                 disponible: true,
             });
+            setCurrentImageUrl("");
+            setCurrentPublicId("");
         } else {
             setIsLoading(false)
             alert("Error al actualizar el plato")
@@ -142,6 +221,8 @@ export default function PlatoModal({ showItemModal, closeModal, item, categorias
                 categoriaIds: [],
                 disponible: true,
             });
+            setCurrentImageUrl("");
+            setCurrentPublicId("");
             closeModal(open);
         }
         } >
@@ -227,14 +308,75 @@ export default function PlatoModal({ showItemModal, closeModal, item, categorias
                         </div>
                     </div>
 
-                    <div>
-                        <Label htmlFor="foto">URL de la Imagen</Label>
-                        <Input
-                            id="foto"
-                            {...register("foto")}
-                            placeholder="https://ejemplo.com/imagen.jpg"
-                        />
-                        {errors.foto && <span className="text-red-500">{errors.foto.message}</span>}
+                    {/* Sección de imagen */}
+                    <div className="space-y-4">
+                        <Label>Imagen del Plato</Label>
+
+                        {/* Vista previa de la imagen */}
+                        {currentImageUrl && (
+                            <div className="relative">
+                                <img
+                                    src={currentImageUrl}
+                                    alt="Vista previa"
+                                    className="w-full h-48 object-cover rounded-md border"
+                                />
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="sm"
+                                    className="absolute top-2 right-2"
+                                    onClick={handleDeleteImage}
+                                    disabled={isUploadingImage}
+                                >
+                                    <X className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        )}
+
+                        {/* Input para subir imagen */}
+                        <div className="flex gap-2">
+                            <div className="flex-1">
+                                <Input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleImageUpload}
+                                    disabled={isUploadingImage}
+                                    className="hidden"
+                                    id="image-upload"
+                                />
+                                <Label
+                                    htmlFor="image-upload"
+                                    className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:border-gray-400 transition-colors"
+                                >
+                                    {isUploadingImage ? (
+                                        <>
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                            <span>Subiendo imagen...</span>
+                                        </>
+                                    ) : currentImageUrl ? (
+                                        <>
+                                            <ImageIcon className="w-5 h-5" />
+                                            <span>Cambiar imagen</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Upload className="w-5 h-5" />
+                                            <span>Seleccionar imagen (JPG, PNG, WebP, GIF - máx 10MB)</span>
+                                        </>
+                                    )}
+                                </Label>
+                            </div>
+                        </div>
+
+                        {/* Información de la imagen */}
+                        {currentImageUrl && (
+                            <div className="p-3 bg-muted rounded-md">
+                                <p className="text-sm font-medium">URL de la imagen:</p>
+                                <p className="text-xs text-muted-foreground break-all">
+                                    {currentImageUrl}
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                     <div>
@@ -279,6 +421,8 @@ export default function PlatoModal({ showItemModal, closeModal, item, categorias
                                 categoriaIds: [],
                                 disponible: true,
                             });
+                            setCurrentImageUrl("");
+                            setCurrentPublicId("");
                             closeModal(false)
                         }}
                             disabled={isLoading}>
@@ -287,8 +431,8 @@ export default function PlatoModal({ showItemModal, closeModal, item, categorias
                         <Button onClick={
                             handleSubmit(onSubmit)
                         }
-                            disabled={isLoading}
-                            className={`${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                            disabled={isLoading || isUploadingImage}
+                            className={`${isLoading || isUploadingImage ? "opacity-50 cursor-not-allowed" : ""}`}
                         >
                             {isLoading ? <Loader2 className="w-4 h-4 mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                             {isLoading ? "Guardando..." : "Guardar"}

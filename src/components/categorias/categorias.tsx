@@ -2,7 +2,7 @@
 import { Plus } from "lucide-react";
 import { Button } from "../ui/button";
 import { TabsContent } from "../ui/tabs";
-import { useGetPlatos } from "@/hooks/hooks-platos";
+import { useGetPlatos } from "@/hooks/get-platos";
 import { Categoria } from "@/lib/generated/prisma";
 import useGetCategorias from "@/hooks/get-categorias";
 import CategoriasCard from "./categorias-card";

@@ -8,8 +8,10 @@ const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-producti
 
 
 export async function POST(request: NextRequest) {
+
   try {
     const { username, password } = await request.json()
+    console.log(username, password)
 
     const admin = await prisma.admin.findUnique({
       where: {
@@ -22,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validar credenciales
-    if ( password !== admin.password) {
+    if (password !== admin.password) {
       return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 })
     }
 

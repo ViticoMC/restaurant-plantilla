@@ -62,31 +62,35 @@ export async function PUT(
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const id = params.id;
-    console.log(id)
+
+    const { id } = params;
 
     if (!id) {
-      return NextResponse.json({ error: "Falta el ID" }, { status: 400 });
+      return NextResponse.json({ error: "ID requerido" }, { status: 400 });
+    }
+    console.log(id, "id")
+    const plato = await prisma.plato.findUnique({ where: { id } });
+    console.log(plato, "plato")
+
+    if (!plato) {
+      return NextResponse.json({ error: "Plato no encontrado" }, { status: 404 });
     }
 
-    const comida = await prisma.plato.delete({
-      where: {
-        id,
-      },
-    });
+    const deleted = await prisma.plato.delete({ where: { id } });
 
-    if (!comida) {
-      return NextResponse.json(
-        { error: "No se encontró la comida" },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json(comida);
+    return NextResponse.json(deleted);
   } catch (error) {
     console.error("Error al eliminar comida:", error);
-    return NextResponse.json({ error: "Error del servidor" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Error del servidor al eliminar el plato" },
+      { status: 500 }
+    );
   }
 }
+

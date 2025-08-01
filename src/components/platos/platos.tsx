@@ -3,7 +3,7 @@ import { Plus } from "lucide-react";
 import { Button } from "../ui/button";
 import { TabsContent } from "../ui/tabs";
 import PlatosCard from "./platos-card";
-import { useGetPlatos } from "@/hooks/hooks-platos";
+import { useGetPlatos } from "@/hooks/get-platos";
 import { useState } from "react";
 import { Plato } from "@/lib/generated/prisma";
 import PlatoModal from "./plato-modal";

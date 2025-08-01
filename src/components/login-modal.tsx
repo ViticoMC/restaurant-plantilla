@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { api } from "@/lib/api"
 
 interface LoginModalProps {
   open: boolean
@@ -30,24 +31,17 @@ export default function LoginModal({ open, onOpenChange }: LoginModalProps) {
     setError("")
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username, password }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        onOpenChange(false)
-        router.push("/admin")
+      await api.post("/auth/login", { username, password })
+      onOpenChange(false)
+      router.push("/admin")
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        setError("Credenciales inválidas")
+      } else if (error.response?.data?.error) {
+        setError(error.response.data.error)
       } else {
-        setError(data.error || "Error al iniciar sesión")
+        setError("Error al iniciar sesión")
       }
-    } catch (error) {
-      setError("Error de conexión")
     } finally {
       setLoading(false)
     }

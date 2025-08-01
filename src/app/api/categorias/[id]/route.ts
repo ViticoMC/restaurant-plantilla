@@ -63,9 +63,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+  req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const id = params.id;
     console.log("id ", id)

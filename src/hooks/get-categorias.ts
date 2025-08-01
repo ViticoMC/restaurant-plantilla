@@ -1,16 +1,17 @@
-import {  useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { getCategorias } from "@/utils/get-categorias";
 import { useCategoriasStore } from "@/store/categorias";
 
 export default function useGetCategorias() {
-  const {categorias , dispatchCategorias} = useCategoriasStore();
+  const { categorias, dispatchCategorias } = useCategoriasStore();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+
     getCategorias()
       .then((data) => {
-        dispatchCategorias({type: "SET_CATEGORIAS", payload: data});
+        dispatchCategorias({ type: "SET_CATEGORIAS", payload: data });
         setIsLoading(false);
       })
       .catch((err) => {
@@ -19,5 +20,5 @@ export default function useGetCategorias() {
       });
   }, []);
 
-  return { categorias, error , isLoading};
+  return { categorias, error, isLoading };
 }

@@ -1,99 +1,24 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { LogOut, Save, X, ArrowLeft } from "lucide-react"
+import { LogOut, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import useGetAdmin from "@/hooks/get-admin"
-import { Categoria } from "@/lib/generated/prisma"
-import useGetCategorias from "@/hooks/get-categorias"
 import Platos from "@/components/platos/platos"
 import Categorias from "@/components/categorias/categorias"
+import { api } from "@/lib/api"
 
 export default function AdminPanel() {
-  const { admin, error, isLoading } = useGetAdmin()
-  const [showCategoryModal, setShowCategoryModal] = useState(false)
-  const [editingCategory, setEditingCategory] = useState<Categoria | null>(null)
+  const { admin, isLoading } = useGetAdmin()
   const router = useRouter()
 
-
-  const { categorias } = useGetCategorias()
-
-
-
-
-
-  const [categoryForm, setCategoryForm] = useState({
-    nombre: "",
-    icon: "🍽️",
-  })
-
-
   const handleLogout = async () => {
-    const response = await fetch("/api/auth/logout", {
-      method: "POST",
-    })
-    if (response.ok) {
+    const res = await api.post("/auth/logout")
+    if (res.status === 200) {
       router.push("/")
     }
   }
-
-
-
-  const openCategoryModal = (category?: Categoria) => {
-    if (category) {
-      setEditingCategory(category)
-      setCategoryForm({
-        nombre: category.nombre,
-        icon: category.icon,
-      })
-    } else {
-      setEditingCategory(null)
-      setCategoryForm({
-        nombre: "",
-        icon: "🍽️",
-      })
-    }
-    setShowCategoryModal(true)
-  }
-
-
-  const saveCategory = async () => {
-    if (editingCategory) {
-      // setCategories((cats) => cats.map((cat) => (cat.id === editingCategory.id ? { ...cat, ...categoryForm } : cat)))
-    } else {
-      const response = await fetch("/api/categorias", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(categoryForm),
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        console.log(error)
-        return
-      }
-      const newCategory = await response.json()
-      console.log(newCategory)
-
-    }
-    // setShowCategoryModal(false)
-  }
-
-
-
-  const deleteCategory = (id: string) => {
-    // setCategories((cats) => cats.filter((cat) => cat.id !== id))
-    // setMenuItems((items) => items.filter((item) => item.categoria !== id))
-  }
-
 
   if (isLoading) {
     return (

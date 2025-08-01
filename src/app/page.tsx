@@ -12,7 +12,7 @@ import LoginModal from "@/components/login-modal"
 import { mockData } from "@/lib/mock-data"
 import { Plato } from "@/lib/generated/prisma"
 import { useRouter } from "next/navigation"
-import { useGetPlatos } from "@/hooks/hooks-platos"
+import { useGetPlatos } from "@/hooks/get-platos"
 import useGetCategorias from "@/hooks/get-categorias"
 import useGetAdmin from "@/hooks/get-admin"
 
@@ -72,7 +72,6 @@ export default function RestaurantMenu() {
       </div>
     )
   }
-
 
   return (
     <div className="min-h-screen bg-background">

@@ -19,7 +19,7 @@ export default function CategoryModal({ showCategoryModal, closeModal, editingCa
         icon: "",
     })
     const [isLoading, setIsLoading] = useState(false)
-    const { dispatchCategorias } = useCategoriasStore()
+    const { dispatchCategorias, categorias } = useCategoriasStore()
 
     useEffect(() => {
         if (editingCategory) {
@@ -51,7 +51,6 @@ export default function CategoryModal({ showCategoryModal, closeModal, editingCa
             return
         }
         const newCategory = await response.json()
-        console.log(newCategory)
         dispatchCategorias({ type: "ADD_CATEGORIA", payload: newCategory })
         setIsLoading(false)
         closeModal(false)

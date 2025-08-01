@@ -7,10 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { useCategoriasStore } from "@/store/categorias";
 import { deletePlato } from "@/utils/actions-platos";
 import { usePlatosStore } from "@/store/platos";
+import Image from "next/image";
+
+// 3344
 
 export default function PlatosCard({ item, openItemModal }: { item: Plato, openItemModal: (item: Plato) => void }) {
 
-  const { dispatch } = usePlatosStore()
+  const { dispatch, platos } = usePlatosStore()
   const { categorias } = useCategoriasStore()
 
   async function deleteItem(id: string) {
@@ -28,8 +31,11 @@ export default function PlatosCard({ item, openItemModal }: { item: Plato, openI
   return (
     <Card >
       <CardHeader className="pb-3">
-        <div className="flex justify-between items-start">
-          <CardTitle className="text-lg">{item.nombre}</CardTitle>
+        <div className="flex justify-between items-start ">
+          <div className="flex flex-col">
+            <Image src={item.foto} alt={item.nombre} width={100} height={100} className="h-20 w-20 rounded-xl object-cover" />
+            <CardTitle className="text-lg">{item.nombre}</CardTitle>
+          </div>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={() => openItemModal(item)}>
               <Edit className="w-3 h-3" />
